@@ -1,7 +1,0 @@
-# ninja log v5
-1651	1959	1638146915173205342	noise_reduction	7d339a9b612ea017
-0	1651	1638146914873206959	CMakeFiles/noise_reduction.dir/noise_reduction.cpp.o	37f2402179381175
-0	1611	1638145885851954761	CMakeFiles/noise_reduction.dir/main.cpp.o	e97eb9373e22ec82
-1	1571	1638148453851700579	CMakeFiles/noise_reduction.dir/main.cpp.o	e97eb9373e22ec82
-1	1694	1638148453971699945	CMakeFiles/noise_reduction.dir/noise_reduction.cpp.o	37f2402179381175
-1694	2006	1638148454278364991	noise_reduction	7d339a9b612ea017
