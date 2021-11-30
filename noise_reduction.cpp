@@ -129,7 +129,7 @@ cv::Mat median_merge_frames(std::vector<cv::Mat>& frames)
     
     cv::Mat merged = frames[0].clone();
     std::vector<int> values(frames.size());
-    cv::Vec3b p1;
+    int p1;
     int oneper = frames[0].cols / 100;
     int middle = (frames.size() / 2) + (frames.size() % 2);
     
@@ -137,19 +137,15 @@ cv::Mat median_merge_frames(std::vector<cv::Mat>& frames)
     for (int i = 0, width = frames[0].cols; i < width; ++i)
     {
         for (int j = 0, height = frames[0].rows; j < height; ++j)
-        {
-                       
-            
-            for (int e = 0; e < p1.channels; ++e)
-            {
+        {            
                 
-                for (int k = 0; k < frames.size(); ++k)
-                {                    
-                    values[k] = frames[k].at<cv::Vec3b>(j, i)[e];                    
-                }
-                std::sort(values.begin(), values.end());                              
-                merged.at<cv::Vec3b>(j, i)[e] = values[middle];                
-            }           
+            for (int k = 0; k < frames.size(); ++k)
+            {                    
+                values[k] = frames[k].at<uchar>(j, i);                    
+            }
+            std::sort(values.begin(), values.end());                              
+            merged.at<uchar>(j, i) = values[middle];               
+                      
                
         }
         if (i > 0)

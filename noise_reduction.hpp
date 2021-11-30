@@ -5,7 +5,7 @@
 #define resolution_list_file "known_capture_resolutions.csv"
 #define SIMILARITY_THRESHOLD 1
 
-constexpr int FRAME_SAMPLES = 7;    // number of frames to combine into one denoised image. Framerate will be divided by this number
+constexpr int FRAME_SAMPLES = 60;    // number of frames to combine into one denoised image. Framerate will be divided by this number
 constexpr int CAMERA_SLOTS = 10;    // number of video capture sources that may be connected to PC
 const char ESC = 27;
 

@@ -18,7 +18,7 @@ int main()
     int frametime = 1000 / modes[currentmode].frameRate - 1; //get approximate frame time in ms    
 
     cv::Mat frame;
-    //cv::Mat vsource;
+    cv::Mat vsource;
     
     cv::namedWindow("frame", cv::WINDOW_KEEPRATIO);
     bool sampling = false;
@@ -45,9 +45,8 @@ int main()
                 break; 
         }        
         
-        //cap >> vsource;
-        cap >> frame;
-        //cv::cvtColor(vsource, frame, cv::COLOR_BGR2GRAY);
+        cap >> vsource;
+        cv::cvtColor(vsource, frame, cv::COLOR_BGR2GRAY);
         if (frame.empty()) continue;
         if (sampling)
         {
