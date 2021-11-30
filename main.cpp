@@ -13,24 +13,57 @@ int main()
     }
 
     std::vector<CaptureMode> modes = get_supported_video_modes(cap);
+    int currentmode = modes.size() - 1;
 
-    double framerate = cap.get(cv::CAP_PROP_FPS);
-    int frametime = 1000 / framerate - 1; //get approximate frame time in ms    
+    int frametime = 1000 / modes[currentmode].frameRate - 1; //get approximate frame time in ms    
 
     cv::Mat frame;
+    //cv::Mat vsource;
+    
+    cv::namedWindow("frame", cv::WINDOW_KEEPRATIO);
+    bool sampling = false;
+    std::vector<cv::Mat> samples(FRAME_SAMPLES);
+    int si = 0; //sample index
+
     while (true)
     {
         char c = cv::waitKey(frametime);
-        if (c == ESC) break;        
+
+        switch (c){
+            case ESC: goto label;
+            case 'm': 
+                if (currentmode < modes.size() - 1) ++currentmode;
+                else currentmode = 0;
+
+                set_capture_mode(cap, modes[currentmode]);
+                frametime = 1000 / modes[currentmode].frameRate;
+                std::cout << "set mode to " << modes[currentmode].width << "x" << modes[currentmode].height << "@" << modes[currentmode].frameRate << "fps\n";
+                break;
+            case 'c': 
+                sampling = true; 
+                si = 0;
+                break; 
+        }        
+        
+        //cap >> vsource;
         cap >> frame;
+        //cv::cvtColor(vsource, frame, cv::COLOR_BGR2GRAY);
         if (frame.empty()) continue;
+        if (sampling)
+        {
+            samples[si] = frame.clone();
+            ++si;
+            if (si == FRAME_SAMPLES) {imshow("denoised", median_merge_frames(samples)); sampling = false;}
+        }
+
         imshow("frame", frame);
 
     }
 
-    cap.release();
-    cv::destroyAllWindows();
-    return 0;
+    label:
+        cap.release();
+        cv::destroyAllWindows();
+        return 0;
 
 }
 

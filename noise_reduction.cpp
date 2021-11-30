@@ -1,6 +1,7 @@
 #include "noise_reduction.hpp"
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 void load_resolutions(std::vector<int>& HSizes, std::vector<int>& VSizes);
 
@@ -68,4 +69,99 @@ void load_resolutions(std::vector<int>& HSizes, std::vector<int>& VSizes)
     }
 
     ifs.close();
+}
+
+void set_capture_mode(cv::VideoCapture& cap, CaptureMode mode)
+{
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, mode.width);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, mode.height);
+    cap.set(cv::CAP_PROP_FPS, mode.frameRate);
+    return;
+}
+
+cv::Mat vote_merge_frames(std::vector<cv::Mat>& frames)
+{
+    cv::Mat merged = frames[0].clone();
+    int votes[frames.size()];
+    int winner;
+    cv::Vec3b p1;
+    int oneper = frames[0].cols / 100;
+    
+
+    for (int i = 0, width = frames[0].cols; i < width; ++i)
+    {
+        for (int j = 0, height = frames[0].rows; j < height; ++j)
+        {
+            
+            
+            
+            for (int e = 0; e < p1.channels; ++e)
+            {
+                if (i == 200) std::cerr << winner;
+                winner = 0;
+                for (int k = 0; k < frames.size(); ++k)
+                {                    
+                    if (i == 210 && j == 210) std::cout << frames[k].at<cv::Vec3b>(j, i) << "\n";
+                                    
+                    for (int l = 0; l < frames.size(); ++l)
+                    {
+                        if (frames[k].at<cv::Vec3b>(j, i)[e] - frames[l].at<cv::Vec3b>(j, i)[e] < SIMILARITY_THRESHOLD) votes[l]++;
+                    }          
+                                        
+                }
+                for (int v = 0; v < frames.size(); ++v) if (votes[v] > votes[winner]) winner = v;
+                merged.at<cv::Vec3b>(j, i)[e] = frames[winner].at<cv::Vec3b>(j, i)[e];
+                for (int & vote : votes) vote = 0;                
+            }            
+        }
+        if (i > 0)
+        {
+            if (i % oneper == 0) std::cout << i / oneper - 1 << "%\n";
+        }
+    }
+
+    return merged;
+}
+
+cv::Mat median_merge_frames(std::vector<cv::Mat>& frames)
+{
+    auto start = std::chrono::steady_clock::now();
+    
+    cv::Mat merged = frames[0].clone();
+    std::vector<int> values(frames.size());
+    cv::Vec3b p1;
+    int oneper = frames[0].cols / 100;
+    int middle = (frames.size() / 2) + (frames.size() % 2);
+    
+
+    for (int i = 0, width = frames[0].cols; i < width; ++i)
+    {
+        for (int j = 0, height = frames[0].rows; j < height; ++j)
+        {
+                       
+            
+            for (int e = 0; e < p1.channels; ++e)
+            {
+                
+                for (int k = 0; k < frames.size(); ++k)
+                {                    
+                    values[k] = frames[k].at<cv::Vec3b>(j, i)[e];                    
+                }
+                std::sort(values.begin(), values.end());                              
+                merged.at<cv::Vec3b>(j, i)[e] = values[middle];                
+            }           
+               
+        }
+        if (i > 0)
+        {
+            
+        }
+        if (i % oneper == 0) std::cout << i / oneper - 1 << "%\n";
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cerr << "time taken processing samples: " << elapsed_seconds.count() << "s\n";
+
+    return merged;
 }
