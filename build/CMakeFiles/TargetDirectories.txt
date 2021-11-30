@@ -1,3 +1,0 @@
-/home/james/Projects/3D scanning/sketches/noise_reduction/build/CMakeFiles/noise_reduction.dir
-/home/james/Projects/3D scanning/sketches/noise_reduction/build/CMakeFiles/edit_cache.dir
-/home/james/Projects/3D scanning/sketches/noise_reduction/build/CMakeFiles/rebuild_cache.dir
