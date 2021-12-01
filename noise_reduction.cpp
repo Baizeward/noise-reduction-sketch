@@ -79,85 +79,59 @@ void set_capture_mode(cv::VideoCapture& cap, CaptureMode mode)
     return;
 }
 
-cv::Mat vote_merge_frames(std::vector<cv::Mat>& frames)
+cv::Mat add_denoise_r(cv::VideoCapture& cap, int samples, int frametime) //TODO convert frametime to static int initialised by first instance?
 {
-    cv::Mat merged = frames[0].clone();
-    int votes[frames.size()];
-    int winner;
-    cv::Vec3b p1;
-    int oneper = frames[0].cols / 100;
-    
+	cv::Mat image;
+	char c;
+	static int level = 0;
+	
+	if (samples == 1)
+	{		
+		cap >> image;
+		c = cv::waitKey(frametime);
+		return image;
+	}
+	else
+	{
+		cv::addWeighted(add_denoise_r(cap, samples/2, frametime), 0.5, add_denoise_r(cap, samples - samples/2, frametime), 0.5, 0.0, image);
+		c = cv::waitKey(frametime);
 
-    for (int i = 0, width = frames[0].cols; i < width; ++i)
-    {
-        for (int j = 0, height = frames[0].rows; j < height; ++j)
-        {
-            
-            
-            
-            for (int e = 0; e < p1.channels; ++e)
-            {
-                if (i == 200) std::cerr << winner;
-                winner = 0;
-                for (int k = 0; k < frames.size(); ++k)
-                {                    
-                    if (i == 210 && j == 210) std::cout << frames[k].at<cv::Vec3b>(j, i) << "\n";
-                                    
-                    for (int l = 0; l < frames.size(); ++l)
-                    {
-                        if (frames[k].at<cv::Vec3b>(j, i)[e] - frames[l].at<cv::Vec3b>(j, i)[e] < SIMILARITY_THRESHOLD) votes[l]++;
-                    }          
-                                        
-                }
-                for (int v = 0; v < frames.size(); ++v) if (votes[v] > votes[winner]) winner = v;
-                merged.at<cv::Vec3b>(j, i)[e] = frames[winner].at<cv::Vec3b>(j, i)[e];
-                for (int & vote : votes) vote = 0;                
-            }            
-        }
-        if (i > 0)
-        {
-            if (i % oneper == 0) std::cout << i / oneper - 1 << "%\n";
-        }
-    }
-
-    return merged;
+		if (samples > level)
+		{
+			level = samples;
+			std::cerr << "level: " << level << "\n";
+			imshow("denoised", image);
+		}
+		return image;
+	}
+	
 }
 
-cv::Mat median_merge_frames(std::vector<cv::Mat>& frames)
+cv::Mat temporal_median(cv::Mat medianBuffer)
 {
-    auto start = std::chrono::steady_clock::now();
-    
-    cv::Mat merged = frames[0].clone();
-    std::vector<int> values(frames.size());
-    int p1;
-    int oneper = frames[0].cols / 100;
-    int middle = (frames.size() / 2) + (frames.size() % 2);
-    
+	auto start = std::chrono::steady_clock::now();
 
-    for (int i = 0, width = frames[0].cols; i < width; ++i)
-    {
-        for (int j = 0, height = frames[0].rows; j < height; ++j)
-        {            
-                
-            for (int k = 0; k < frames.size(); ++k)
-            {                    
-                values[k] = frames[k].at<uchar>(j, i);                    
-            }
-            std::sort(values.begin(), values.end());                              
-            merged.at<uchar>(j, i) = values[middle];               
-                      
-               
-        }
-        if (i > 0)
-        {
-            
-        }
-        if (i % oneper == 0) std::cout << i / oneper - 1 << "%\n";
-    }
+	typedef cv::Vec<uchar, FRAME_SAMPLES> pixar;	//pixel array
+	
+	cv::parallel_for_(cv::Range(0 , medianBuffer.rows * medianBuffer.cols), [&](const cv::Range& range){
+    for(int r = range.start; r<range.end; r++ )
+    	{
+         	int i = r / medianBuffer.cols;
+         	int j = r % medianBuffer.cols;
+			
+			uint8_t temp[FRAME_SAMPLES];
+			for (int k = 0; k < FRAME_SAMPLES; ++k) temp[k] = medianBuffer.at<pixar>(i, j)[k];
+			std::sort(temp, temp + FRAME_SAMPLES);
+			medianBuffer.at<pixar>(i, j)[0] = temp[FRAME_SAMPLES / 2];
+    	}
+	});
+	
+	cv::Mat result;
+	cv::extractChannel(medianBuffer, result, 0);
 
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end-start;
-    std::cerr << "time taken processing samples: " << elapsed_seconds.count() << "s\n";
+	auto end = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cerr << "\nprocessed " << FRAME_SAMPLES << " samples in: " << elapsed_seconds.count() << "s\n";
 
-    return merged;
+	return result;
 }

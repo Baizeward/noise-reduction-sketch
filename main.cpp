@@ -18,12 +18,19 @@ int main()
     int frametime = 1000 / modes[currentmode].frameRate - 1; //get approximate frame time in ms    
 
     cv::Mat frame;
-    cv::Mat vsource;
+    cv::Mat denoised;
     
     cv::namedWindow("frame", cv::WINDOW_KEEPRATIO);
     bool sampling = false;
-    std::vector<cv::Mat> samples(FRAME_SAMPLES);
-    int si = 0; //sample index
+	bool medsampling = false;
+
+    double alpha = 1.0 / FRAME_SAMPLES;
+    int si = 0;
+		
+	int sizes[] = {modes[currentmode].height, modes[currentmode].width};
+	cv::Mat medianBuffer[FRAME_SAMPLES];
+	cv::Mat mb_merged;
+	int medcount;
 
     while (true)
     {
@@ -40,20 +47,45 @@ int main()
                 std::cout << "set mode to " << modes[currentmode].width << "x" << modes[currentmode].height << "@" << modes[currentmode].frameRate << "fps\n";
                 break;
             case 'c': 
-                sampling = true; 
-                si = 0;
-                break; 
+                if (!sampling)
+                {
+                    sampling = true; 
+                    si = 0;
+                }                
+                break;
+			case 'n':
+				if (!medsampling)
+				{
+					medsampling = true;
+					medcount = 0;
+				}
+				break; 
         }        
         
-        cap >> vsource;
-        cv::cvtColor(vsource, frame, cv::COLOR_BGR2GRAY);
+        cap >> frame;        
         if (frame.empty()) continue;
+		cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
+
         if (sampling)
-        {
-            samples[si] = frame.clone();
-            ++si;
-            if (si == FRAME_SAMPLES) {imshow("denoised", median_merge_frames(samples)); sampling = false;}
+        {            
+            imshow("denoised", add_denoise_r(cap, FRAME_SAMPLES, frametime));
+			sampling = false;	
+                                               
         }
+
+		if (medsampling)
+		{
+			medianBuffer[medcount] = frame;
+			++medcount;
+			if (medcount == FRAME_SAMPLES) 
+			{
+								
+				cv::merge(medianBuffer, FRAME_SAMPLES, mb_merged);
+				imshow("denoised", temporal_median(mb_merged));
+				medsampling = false;
+			}
+			else std::cerr << "\rloaded frame " << medcount;
+		}
 
         imshow("frame", frame);
 
@@ -65,11 +97,3 @@ int main()
         return 0;
 
 }
-
-
-
-
-
-
-
-
