@@ -29,7 +29,6 @@ int main()
 		
 	int sizes[] = {modes[currentmode].height, modes[currentmode].width};
 	cv::Mat medianBuffer[FRAME_SAMPLES];
-	cv::Mat mb_merged;
 	int medcount;
 
     while (true)
@@ -59,6 +58,7 @@ int main()
 					medsampling = true;
 					medcount = 0;
 				}
+				else medsampling = false;
 				break; 
         }        
         
@@ -78,11 +78,11 @@ int main()
 			medianBuffer[medcount] = frame;
 			++medcount;
 			if (medcount == FRAME_SAMPLES) 
-			{
-								
-				cv::merge(medianBuffer, FRAME_SAMPLES, mb_merged);
-				imshow("denoised", temporal_median(mb_merged));
-				medsampling = false;
+			{					
+				// std::cerr << "\n";
+				imshow("denoised", temporal_median(medianBuffer));
+				// medsampling = false;
+				medcount = 0;
 			}
 			else std::cerr << "\rloaded frame " << medcount;
 		}

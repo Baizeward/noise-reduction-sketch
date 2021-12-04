@@ -107,31 +107,29 @@ cv::Mat add_denoise_r(cv::VideoCapture& cap, int samples, int frametime) //TODO 
 	
 }
 
-cv::Mat temporal_median(cv::Mat medianBuffer)
+cv::Mat temporal_median(cv::Mat * medianBuffer)
 {
+	//accepts a vector of mat as input and returns the per element median. Input images must all be the same dimension and have only one channel of uchar
 	auto start = std::chrono::steady_clock::now();
-
-	typedef cv::Vec<uchar, FRAME_SAMPLES> pixar;	//pixel array
 	
-	cv::parallel_for_(cv::Range(0 , medianBuffer.rows * medianBuffer.cols), [&](const cv::Range& range){
+	cv::Mat result = medianBuffer[0].clone();		
+		
+	cv::parallel_for_(cv::Range(0 , medianBuffer[0].rows * medianBuffer[0].cols), [&](const cv::Range& range){
     for(int r = range.start; r<range.end; r++ )
     	{
-         	int i = r / medianBuffer.cols;
-         	int j = r % medianBuffer.cols;
+         	int i = r / medianBuffer[0].cols;
+         	int j = r % medianBuffer[0].cols;
 			
 			uint8_t temp[FRAME_SAMPLES];
-			for (int k = 0; k < FRAME_SAMPLES; ++k) temp[k] = medianBuffer.at<pixar>(i, j)[k];
+			for (int k = 0; k < FRAME_SAMPLES; ++k) temp[k] = medianBuffer[k].at<uchar>(i, j);
 			std::sort(temp, temp + FRAME_SAMPLES);
-			medianBuffer.at<pixar>(i, j)[0] = temp[FRAME_SAMPLES / 2];
+			result.at<uchar>(i, j) = temp[FRAME_SAMPLES / 2];
     	}
 	});
 	
-	cv::Mat result;
-	cv::extractChannel(medianBuffer, result, 0);
-
-	auto end = std::chrono::steady_clock::now();
-	std::chrono::duration<double> elapsed_seconds = end-start;
-    std::cerr << "\nprocessed " << FRAME_SAMPLES << " samples in: " << elapsed_seconds.count() << "s\n";
+	// auto end = std::chrono::steady_clock::now();
+	// std::chrono::duration<double> elapsed_seconds = end-start;
+    // std::cerr << "processed " << FRAME_SAMPLES << " samples in: " << elapsed_seconds.count() << "s\n";
 
 	return result;
 }
