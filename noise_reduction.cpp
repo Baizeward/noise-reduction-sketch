@@ -79,40 +79,13 @@ void set_capture_mode(cv::VideoCapture& cap, CaptureMode mode)
     return;
 }
 
-cv::Mat add_denoise_r(cv::VideoCapture& cap, int samples, int frametime) //TODO convert frametime to static int initialised by first instance?
-{
-	cv::Mat image;
-	char c;
-	static int level = 0;
-	
-	if (samples == 1)
-	{		
-		cap >> image;
-		c = cv::waitKey(frametime);
-		return image;
-	}
-	else
-	{
-		cv::addWeighted(add_denoise_r(cap, samples/2, frametime), 0.5, add_denoise_r(cap, samples - samples/2, frametime), 0.5, 0.0, image);
-		c = cv::waitKey(frametime);
-
-		if (samples > level)
-		{
-			level = samples;
-			std::cerr << "level: " << level << "\n";
-			imshow("denoised", image);
-		}
-		return image;
-	}
-	
-}
-
 cv::Mat temporal_median(cv::Mat * medianBuffer)
 {
-	//accepts a vector of mat as input and returns the per element median. Input images must all be the same dimension and have only one channel of uchar
+	//	accepts a vector of mat as input and returns the per element median. Input images must all be the same dimension and have only one channel of uchar
+	//	TODO: generalise to work with multi-channel mats. Maybe see if processing can be accelerated by the GPU
 	auto start = std::chrono::steady_clock::now();
 	
-	cv::Mat result = medianBuffer[0].clone();		
+	cv::Mat result = medianBuffer[0];
 		
 	cv::parallel_for_(cv::Range(0 , medianBuffer[0].rows * medianBuffer[0].cols), [&](const cv::Range& range){
     for(int r = range.start; r<range.end; r++ )
@@ -127,9 +100,9 @@ cv::Mat temporal_median(cv::Mat * medianBuffer)
     	}
 	});
 	
-	// auto end = std::chrono::steady_clock::now();
-	// std::chrono::duration<double> elapsed_seconds = end-start;
-    // std::cerr << "processed " << FRAME_SAMPLES << " samples in: " << elapsed_seconds.count() << "s\n";
+	auto end = std::chrono::steady_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cerr << "processed " << FRAME_SAMPLES << " samples in: " << elapsed_seconds.count() << "s\n";
 
 	return result;
 }
